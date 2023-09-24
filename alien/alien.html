@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        .label-container {
+            display: none; /* Hide the label containers */
+        }
+        #result {
+            background-color: #ffffff; /* Set white background color for the result */
+            padding: 10px; /* Add padding for the result */
+            margin-top: 10px; /* Add some space between the result and labels */
+        }
+    </style>
+</head>
+<body>
+<div id="topbar">Alien DEMO</div>
+<div id="startbtncont"><button type="button" onclick="init()" id="startbtn">Scan Here!</button></div>
+<div id="container">
+    <div id="webcam-container"></div>
+    <div class="label-container">
+        <div id="label0">Transparant Alien (A):</div>
+        <div id="label1">Slime Alien (B):</div>
+        <div id="label2">Yellow Alien (C):</div>
+    </div>
+    <div id="result"></div> <!-- Added element for displaying the result -->
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    const URL = "https://teachablemachine.withgoogle.com/models/v4jjAi32D/";
+
+    let model, webcam, labelContainer, maxPredictions;
+
+    async function init() {
+        var element = document.getElementById("startbtncont").classList.add("abs");
+        var element = document.getElementById("startbtn").classList.add("gone");
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        const flip = true;
+        webcam = new tmImage.Webcam(500, 500);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+    }
+
+    async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    let currentResultElement; // Global variable to store the current result element
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        var max = prediction[0].probability.toFixed(2);
+        var imax = 'bar' + 0;
+        for (let i = 0; i < maxPredictions; i++) {
+            if (max < prediction[i].probability.toFixed(2)) {
+                max = prediction[i].probability.toFixed(2);
+                var imax = 'bar' + i;
+            }
+        }
+
+        // Display the result based on the highest prediction
+        var resultElement = document.getElementById("result");
+        if (max < 0.85) {
+            resultElement.innerHTML = "NOT RECOGNIZED";
+        } else {
+            var labelElement = document.getElementById("label" + imax.charAt(imax.length - 1));
+            var alienLabel = labelElement.innerHTML.split(':')[0];
+            resultElement.innerHTML = "This is " + alienLabel;
+        }
+    }
+</script>
+<link rel="stylesheet" href="style.css">
+</body>
+</html>
